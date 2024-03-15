@@ -1,5 +1,8 @@
 ***ONE HEADER, WITHOUT DEPENDENCIES***. Custom allocator with optimized memory management and collecting information about current allocator instance ( allocated size, free space, used space, count of buckets ).
 <br/>
+<br/> ***Support only x64 and maybe only MSVC ( maybe diffrent compilers wont support __stosb and __stosq ( need to change definition KX_ALLOCATOR_MEMSET_B and KX_ALLOCATOR_MEMSET_Q ) )***
+<br/>
+<br/>
 <br/> > Support of different memory alloc and free functions ( see functions - set_allocation_routine, set_free_routine ). ****Note - without assigning this routines - allocator won't work.****
 <br/> > Support for changing block size in runtime. ( count blocks - compile time ( BLOCK_COUNT variable ) ).
 <br/> > Support zeroing memory on allocation or free ( see KX_ALLOCATOR_ZERO_FREE_MEMORY and KX_ALLOCATOR_ZERO_ALLOCATED_MEMORY flags ).
