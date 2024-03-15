@@ -113,6 +113,10 @@ namespace kx
         {
             this->free_routine = routine;
         }
+        inline void set_is_needed_gc_routine(p_is_needed_gc is_needed_gc)
+        {
+            this->is_needed_gc = is_needed_gc;
+        }
     public:
         inline void add_flag(u64 flag)
         {
