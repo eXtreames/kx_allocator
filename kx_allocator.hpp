@@ -10,6 +10,11 @@
 
 /*------------------------------------------------------------------------------------------------*/
 
+#define KX_ALLOCATOR_DEFAULT_BLOCK_COUNT 128
+#define KX_ALLOCATOR_DEFAULT_BLOCK_SIZE  32
+
+/*------------------------------------------------------------------------------------------------*/
+
 #define KX_ALLOCATOR_ZERO_FREE_MEMORY      (1ULL << 1)
 #define KX_ALLOCATOR_ZERO_ALLOCATED_MEMORY (1ULL << 2)
 
@@ -26,13 +31,13 @@
 
 namespace kx
 {
-
     template <class _Ty> struct remove_reference { using type = _Ty; };
     template <class _Ty> struct remove_reference<_Ty&> { using type = _Ty; };
     template <class _Ty> struct remove_reference<_Ty&&> { using type = _Ty; };
     template <class _Ty> using remove_reference_t = typename remove_reference<_Ty>::type;
     template <class _Ty> constexpr _Ty&& forward(remove_reference_t<_Ty>&& _Arg) noexcept { return static_cast<_Ty&&>(_Arg); }
 
+    template <int BLOCK_COUNT = KX_ALLOCATOR_DEFAULT_BLOCK_COUNT, int BLOCK_SIZE = KX_ALLOCATOR_DEFAULT_BLOCK_SIZE>
     class allocator
     {
     public:
@@ -42,9 +47,6 @@ namespace kx
         typedef void*(*p_allocate)(u64);
         typedef void(*p_free)(void*);
         typedef bool(*p_is_needed_gc)(allocator*);
-    private:
-        static constexpr auto BLOCK_COUNT = 32;
-        static constexpr auto BLOCK_SIZE  = 64;
     private:
     #pragma pack(push, 8)
         typedef struct _BLOCK
@@ -392,6 +394,7 @@ namespace kx
             this->free(reinterpret_cast<void*>(instance));
         }
     };
+    using default_allocator = allocator<KX_ALLOCATOR_DEFAULT_BLOCK_COUNT, KX_ALLOCATOR_DEFAULT_BLOCK_SIZE>;
 }
 
 /*------------------------------------------------------------------------------------------------*/
