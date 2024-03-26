@@ -35,8 +35,10 @@ namespace kx
     template <class _Ty> struct remove_reference<_Ty&> { using type = _Ty; };
     template <class _Ty> struct remove_reference<_Ty&&> { using type = _Ty; };
     template <class _Ty> using remove_reference_t = typename remove_reference<_Ty>::type;
-    template <class _Ty> constexpr _Ty&& forward(remove_reference_t<_Ty>&& _Arg) noexcept { return static_cast<_Ty&&>(_Arg); }
 
+    template <class _Ty> constexpr _Ty&& forward(remove_reference_t<_Ty>& _Arg)  noexcept { return static_cast<_Ty&&>(_Arg); }
+    template <class _Ty> constexpr _Ty&& forward(remove_reference_t<_Ty>&& _Arg) noexcept { return static_cast<_Ty&&>(_Arg); }
+    
     template <int BLOCK_COUNT = KX_ALLOCATOR_DEFAULT_BLOCK_COUNT, int BLOCK_SIZE = KX_ALLOCATOR_DEFAULT_BLOCK_SIZE>
     class allocator
     {
@@ -391,6 +393,7 @@ namespace kx
         }
         template <class T> void free_instance(T* instance)
         {
+            instance->~T();
             this->free(reinterpret_cast<void*>(instance));
         }
     };
