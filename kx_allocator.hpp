@@ -321,7 +321,7 @@ namespace kx
             do
             {
                 block_prev = block->prev;
-                this->free_block(block, { });
+                this->free_block(block);
                 freed_count++;
 
             } while (block = block_prev);
