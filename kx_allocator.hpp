@@ -7,6 +7,7 @@
 /*------------------------------------------------------------------------------------------------*/
 
 #include <intrin.h>
+#include <stdio.h>
 
 /*------------------------------------------------------------------------------------------------*/
 
@@ -46,7 +47,7 @@ namespace kx
         using u64 = unsigned long long;
         using u8  = unsigned char;
     public:
-        typedef void*(*p_allocate)(u64);
+        typedef void*(*p_allocate)(u64, u64*);
         typedef void(*p_free)(void*);
         typedef bool(*p_is_needed_gc)(allocator*);
     private:
@@ -66,6 +67,7 @@ namespace kx
         typedef struct _ALLOCATOR_INFORMATION
         {
             u64 buckets_count   = { };
+            u64 free_buckets    = { };
             u64 block_size      = { };
             u64 allocated_space = { };
             u64 used_space      = { };
@@ -138,10 +140,16 @@ namespace kx
     private:
         inline PBLOCK allocate_block(u64 block_size)
         {
-            auto allocated_block = reinterpret_cast<PBLOCK>(this->allocate_routine(sizeof(BLOCK) + block_size * BLOCK_COUNT));
+            auto allocated_block_size = static_cast<u64>(0);
+            auto allocated_block = reinterpret_cast<PBLOCK>(this->allocate_routine(sizeof(BLOCK) + block_size * BLOCK_COUNT, &allocated_block_size));
+
             if (!allocated_block)
             {
                 return { };
+            }
+            if (allocated_block_size)
+            {
+                block_size = (allocated_block_size - sizeof(BLOCK)) / BLOCK_COUNT;
             }
 
             allocated_block->block_size = block_size;
@@ -374,7 +382,12 @@ namespace kx
             auto block = this->first_block;
             do
             {
+                if (!block->used_size)
+                {
+                    information.free_buckets++;
+                }
                 information.buckets_count++;
+
                 information.allocated_space += BLOCK_COUNT * block->block_size;
                 information.used_space += block->used_size;
                 information.free_space += block->max_size - block->used_size;
