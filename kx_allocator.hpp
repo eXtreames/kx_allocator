@@ -166,11 +166,11 @@ namespace kx
 
             return allocated_block;
         }
-        inline void free_block(PBLOCK block, PBLOCK next_block)
+        inline void free_block(PBLOCK block)
         {
             if (block->prev)
             {
-                block->prev->next = next_block;
+                block->prev->next = block->next;
             }
             if (block->next)
             {
@@ -276,9 +276,7 @@ namespace kx
     private:
         inline int free_unused_blocks(bool exclude_first = true)
         {
-            int freed_count = { };
-
-            PBLOCK last_block = { };
+            int freed_count   = { };
             PBLOCK block_prev = { };
 
             auto block = this->last_block;
@@ -302,13 +300,8 @@ namespace kx
 
                 if (is_empty)
                 {
-                    last_block = { };
-                    this->free_block(block, last_block);
+                    this->free_block(block);
                     freed_count++;
-                }
-                else
-                {
-                    last_block = block;
                 }
 
             } while (block = block_prev);
