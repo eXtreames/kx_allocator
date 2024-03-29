@@ -316,27 +316,14 @@ namespace kx
 
             if (first_erased)
             {
-                auto prev_last_block = this->last_block;
-                auto is_first_last   = this->last_block == this->first_block;
-
-                this->last_block  = { };
-                this->first_block = this->allocate_block(this->get_block_size());
-
-                this->first_block->next = block_next;
-                this->first_block->prev = { };
-
                 if (block_next)
                 {
-                    block_next->prev = this->first_block;
-                }
-
-                if (is_first_last)
-                {
-                    this->last_block = this->first_block;
+                    this->first_block = block_next;
+                    this->first_block->prev = { };
                 }
                 else
                 {
-                    this->last_block = prev_last_block;
+                    this->first_block = this->allocate_block(this->get_block_size());
                 }
             }
             return freed_count;
