@@ -276,6 +276,8 @@ namespace kx
     private:
         inline int free_unused_blocks(bool exclude_first = true)
         {
+            bool first_erased = { };
+
             int freed_count   = { };
             PBLOCK block_prev = { };
 
@@ -300,13 +302,17 @@ namespace kx
 
                 if (is_empty)
                 {
+                    if (block == this->first_block)
+                    {
+                        first_erased = true;
+                    }
                     this->free_block(block);
                     freed_count++;
                 }
 
             } while (block = block_prev);
 
-            if (!exclude_first)
+            if (first_erased)
             {
                 this->first_block = this->allocate_block(this->get_block_size());
             }
