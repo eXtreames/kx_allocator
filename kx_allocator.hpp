@@ -81,10 +81,11 @@ namespace kx
         PBLOCK first_block = { };
         PBLOCK last_block  = { };
     public:
-        allocator(p_allocate allocation_routine, p_free free_routine)
+        allocator(p_allocate allocation_routine, p_free free_routine, p_is_needed_gc is_needed_gc = { })
         {
             this->allocate_routine = allocation_routine;
-            this->free_routine = free_routine;
+            this->free_routine     = free_routine;
+            this->is_needed_gc     = is_needed_gc;
 
             this->set_block_size(BLOCK_SIZE);
             this->first_block = this->allocate_block(this->get_block_size());
