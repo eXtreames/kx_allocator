@@ -41,7 +41,7 @@ namespace kx
     {
     public:
         using u64 = unsigned long long;
-        using u8 = unsigned char;
+        using u8  = unsigned char;
     public:
         typedef void* (*p_allocate)(u64, u64*);
         typedef void(*p_free)(void*);
@@ -62,24 +62,24 @@ namespace kx
         } BLOCK, * PBLOCK;
         typedef struct _ALLOCATOR_INFORMATION
         {
-            u64 buckets_count = { };
-            u64 free_buckets = { };
-            u64 block_size = { };
+            u64 buckets_count   = { };
+            u64 free_buckets    = { };
+            u64 block_size      = { };
             u64 allocated_space = { };
-            u64 used_space = { };
-            u64 free_space = { };
+            u64 used_space      = { };
+            u64 free_space      = { };
         } ALLOCATOR_INFORMATION, * PALLOCATOR_INFORMATION;
 #pragma pack(pop)
     private:
         u64 block_size = { };
-        u64 flags = { };
+        u64 flags      = { };
     private:
         p_allocate allocate_routine = { };
         p_is_needed_gc is_needed_gc = { };
-        p_free free_routine = { };
+        p_free free_routine         = { };
     private:
         PBLOCK first_block = { };
-        PBLOCK last_block = { };
+        PBLOCK last_block  = { };
     public:
         allocator(p_allocate allocation_routine, p_free free_routine)
         {
@@ -137,7 +137,7 @@ namespace kx
         inline PBLOCK allocate_block(u64 block_size)
         {
             auto allocated_block_size = static_cast<u64>(0);
-            auto allocated_block = reinterpret_cast<PBLOCK>(this->allocate_routine(sizeof(BLOCK) + block_size * BLOCK_COUNT, &allocated_block_size));
+            auto allocated_block      = reinterpret_cast<PBLOCK>(this->allocate_routine(sizeof(BLOCK) + block_size * BLOCK_COUNT, &allocated_block_size));
 
             if (!allocated_block)
             {
@@ -149,10 +149,10 @@ namespace kx
             }
 
             allocated_block->block_size = block_size;
-            allocated_block->max_size = block_size * BLOCK_COUNT;
-            allocated_block->used_size = { };
-            allocated_block->next = { };
-            allocated_block->prev = this->last_block;
+            allocated_block->max_size   = block_size * BLOCK_COUNT;
+            allocated_block->used_size  = { };
+            allocated_block->next       = { };
+            allocated_block->prev       = this->last_block;
             KX_ALLOCATOR_MEMSET_B(allocated_block->blocks_state, 0, sizeof(allocated_block->blocks_state));
 
             if (this->last_block)
@@ -234,7 +234,7 @@ namespace kx
         inline void* try_reallocate(void* memory, u64 new_size)
         {
             auto current_memory_size = static_cast<u64>(0);
-            auto block = this->first_block;
+            auto block               = this->first_block;
             do
             {
                 if (!block->used_size)
@@ -242,8 +242,8 @@ namespace kx
                     continue;
                 }
 
-                u64 memory_size = current_memory_size;
-                int memory_found = -1;
+                u64 memory_size   = current_memory_size;
+                int memory_found  = -1;
                 int needed_blocks = { };
 
                 for (int i = 0; i < BLOCK_COUNT; i++)
@@ -352,7 +352,7 @@ namespace kx
         inline int free_unused_blocks(bool exclude_first = true)
         {
             bool first_erased = { };
-            int freed_count = { };
+            int freed_count   = { };
 
             PBLOCK block_prev = { };
             PBLOCK block_next = { };
@@ -405,7 +405,7 @@ namespace kx
         }
         inline int free_blocks()
         {
-            int freed_count = { };
+            int freed_count   = { };
             PBLOCK block_prev = { };
 
             auto block = this->last_block;
@@ -487,10 +487,10 @@ namespace kx
         template <class T, class... args> inline T* allocate_instance(args&&... arguments)
         {
             bool needed_erase = !(this->flags & KX_ALLOCATOR_ZERO_ALLOCATED_MEMORY);
-            auto instance = reinterpret_cast<T*>(this->allocate(sizeof(T)));
+            auto instance     = this->allocate(sizeof(T));
 
             if (needed_erase) { KX_ALLOCATOR_MEMSET_B(instance, 0, sizeof(T)); }
-            return ::new(instance) T(forward<args>(arguments)...);
+            return this->construct_at<T>(instance, forward<args>(arguments)...);
         }
         template <class T> inline void free_instance(T* instance)
         {
