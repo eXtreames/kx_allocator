@@ -10,7 +10,7 @@
 
 /*------------------------------------------------------------------------------------------------*/
 
-#define KX_ALLOCATOR_DEFAULT_BLOCK_COUNT 128
+#define KX_ALLOCATOR_DEFAULT_BLOCK_COUNT 512
 #define KX_ALLOCATOR_DEFAULT_BLOCK_SIZE  32
 
 /*------------------------------------------------------------------------------------------------*/
@@ -43,7 +43,7 @@ namespace kx
         using u64 = unsigned long long;
         using u8  = unsigned char;
     public:
-        typedef void* (*p_allocate)(u64, u64*);
+        typedef void*(*p_allocate)(u64, u64*);
         typedef void(*p_free)(void*);
         typedef bool(*p_is_needed_gc)(allocator*);
     private:
@@ -60,6 +60,8 @@ namespace kx
             u8* blocks_state[BLOCK_COUNT];
             u8 blocks[1];
         } BLOCK, * PBLOCK;
+#pragma pack(pop)
+    public:
         typedef struct _ALLOCATOR_INFORMATION
         {
             u64 buckets_count   = { };
@@ -69,7 +71,6 @@ namespace kx
             u64 used_space      = { };
             u64 free_space      = { };
         } ALLOCATOR_INFORMATION, * PALLOCATOR_INFORMATION;
-#pragma pack(pop)
     private:
         u64 block_size = { };
         u64 flags      = { };
@@ -84,8 +85,8 @@ namespace kx
         allocator(p_allocate allocation_routine, p_free free_routine, p_is_needed_gc is_needed_gc = { })
         {
             this->allocate_routine = allocation_routine;
-            this->free_routine     = free_routine;
-            this->is_needed_gc     = is_needed_gc;
+            this->free_routine = free_routine;
+            this->is_needed_gc = is_needed_gc;
 
             this->set_block_size(BLOCK_SIZE);
             this->first_block = this->allocate_block(this->get_block_size());
@@ -243,8 +244,8 @@ namespace kx
                     continue;
                 }
 
-                u64 memory_size   = current_memory_size;
-                int memory_found  = -1;
+                u64 memory_size = current_memory_size;
+                int memory_found = -1;
                 int needed_blocks = { };
 
                 for (int i = 0; i < BLOCK_COUNT; i++)
@@ -467,23 +468,22 @@ namespace kx
             this->free_unused_blocks(false);
         }
     public:
-        inline ALLOCATOR_INFORMATION collect_information() const
+        inline PALLOCATOR_INFORMATION collect_information(PALLOCATOR_INFORMATION information) const
         {
-            ALLOCATOR_INFORMATION information = { };
-            information.block_size = this->get_block_size();
+            information->block_size = this->get_block_size();
 
             auto block = this->first_block;
             do
             {
                 if (!block->used_size)
                 {
-                    information.free_buckets++;
+                    information->free_buckets++;
                 }
-                information.buckets_count++;
+                information->buckets_count++;
 
-                information.allocated_space += BLOCK_COUNT * block->block_size;
-                information.used_space += block->used_size;
-                information.free_space += block->max_size - block->used_size;
+                information->allocated_space += BLOCK_COUNT * block->block_size;
+                information->used_space += block->used_size;
+                information->free_space += block->max_size - block->used_size;
             } while (block = block->next);
 
             return information;
@@ -508,7 +508,8 @@ namespace kx
             return ::new(reinterpret_cast<T*>(memory)) T(forward<args>(arguments)...);
         }
     };
-    using default_allocator = allocator<KX_ALLOCATOR_DEFAULT_BLOCK_COUNT, KX_ALLOCATOR_DEFAULT_BLOCK_SIZE, true>;
+    using default_allocator     = allocator<KX_ALLOCATOR_DEFAULT_BLOCK_COUNT, KX_ALLOCATOR_DEFAULT_BLOCK_SIZE, true>;
+    using allocator_information = default_allocator::ALLOCATOR_INFORMATION;
 }
 
 /*------------------------------------------------------------------------------------------------*/
