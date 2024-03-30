@@ -24,6 +24,7 @@
 
 /*------------------------------------------------------------------------------------------------*/
 
+#define KX_ALLOCATOR_MEMCPY(dst, src, count)    __movsb((unsigned char*)(dst), (const unsigned char*)(src), (unsigned __int64)(count));
 #define KX_ALLOCATOR_MEMSET_B(dst, data, count) __stosb((unsigned char*)(dst), (unsigned char)(data), (unsigned __int64)(count));
 #define KX_ALLOCATOR_MEMSET_Q(dst, data, count) __stosq((unsigned __int64*)(dst), (unsigned __int64)(data), (unsigned __int64)(count));
 
@@ -38,19 +39,19 @@ namespace kx
 
     template <class _Ty> constexpr _Ty&& forward(remove_reference_t<_Ty>& _Arg)  noexcept { return static_cast<_Ty&&>(_Arg); }
     template <class _Ty> constexpr _Ty&& forward(remove_reference_t<_Ty>&& _Arg) noexcept { return static_cast<_Ty&&>(_Arg); }
-    
+
     template <int BLOCK_COUNT = KX_ALLOCATOR_DEFAULT_BLOCK_COUNT, int BLOCK_SIZE = KX_ALLOCATOR_DEFAULT_BLOCK_SIZE>
     class allocator
     {
     public:
         using u64 = unsigned long long;
-        using u8  = unsigned char;
+        using u8 = unsigned char;
     public:
-        typedef void*(*p_allocate)(u64, u64*);
+        typedef void* (*p_allocate)(u64, u64*);
         typedef void(*p_free)(void*);
         typedef bool(*p_is_needed_gc)(allocator*);
     private:
-    #pragma pack(push, 8)
+#pragma pack(push, 8)
         typedef struct _BLOCK
         {
             _BLOCK* next;
@@ -65,24 +66,24 @@ namespace kx
         } BLOCK, * PBLOCK;
         typedef struct _ALLOCATOR_INFORMATION
         {
-            u64 buckets_count   = { };
-            u64 free_buckets    = { };
-            u64 block_size      = { };
+            u64 buckets_count = { };
+            u64 free_buckets = { };
+            u64 block_size = { };
             u64 allocated_space = { };
-            u64 used_space      = { };
-            u64 free_space      = { };
+            u64 used_space = { };
+            u64 free_space = { };
         } ALLOCATOR_INFORMATION, * PALLOCATOR_INFORMATION;
-    #pragma pack(pop)
+#pragma pack(pop)
     private:
         u64 block_size = { };
-        u64 flags      = { };
+        u64 flags = { };
     private:
         p_allocate allocate_routine = { };
         p_is_needed_gc is_needed_gc = { };
-        p_free free_routine         = { };
+        p_free free_routine = { };
     private:
         PBLOCK first_block = { };
-        PBLOCK last_block  = { };
+        PBLOCK last_block = { };
     public:
         allocator(p_allocate allocation_routine, p_free free_routine)
         {
@@ -152,10 +153,10 @@ namespace kx
             }
 
             allocated_block->block_size = block_size;
-            allocated_block->max_size   = block_size * BLOCK_COUNT;
-            allocated_block->used_size  = { };
-            allocated_block->next       = { };
-            allocated_block->prev       = this->last_block;
+            allocated_block->max_size = block_size * BLOCK_COUNT;
+            allocated_block->used_size = { };
+            allocated_block->next = { };
+            allocated_block->prev = this->last_block;
             KX_ALLOCATOR_MEMSET_B(allocated_block->blocks_state, 0, sizeof(allocated_block->blocks_state));
 
             if (this->last_block)
@@ -234,6 +235,84 @@ namespace kx
 
             return { };
         }
+        inline void* try_reallocate(void* memory, u64 new_size)
+        {
+            auto current_memory_size = static_cast<u64>(0);
+            auto block = this->first_block;
+            do
+            {
+                if (!block->used_size)
+                {
+                    continue;
+                }
+
+                u64 memory_size   = current_memory_size;
+                int memory_found  = -1;
+                int needed_blocks = { };
+
+                for (int i = 0; i < BLOCK_COUNT; i++)
+                {
+                    if (block->blocks_state[i] == memory)
+                    {
+                        current_memory_size += block->block_size;
+                        if (memory_found == -1)
+                        {
+                            memory_found = i;
+                        }
+                        needed_blocks++;
+                    }
+                    else if (memory_found == -1)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (block->blocks_state[i])
+                        {
+                            memory_size = 0;
+                            break;
+                        }
+                        else if (!memory_size)
+                        {
+                            memory_size = current_memory_size;
+                        }
+
+                        memory_size += block->block_size;
+                        if (memory_size >= new_size)
+                        {
+                            break;
+                        }
+                        needed_blocks++;
+                    }
+                }
+
+                if (memory_size >= new_size)
+                {
+                    auto additional_size = memory_size - current_memory_size;
+
+                    block->used_size += additional_size;
+                    KX_ALLOCATOR_MEMSET_Q(&block->blocks_state[memory_found], memory, needed_blocks + 1);
+                    if (this->flags & KX_ALLOCATOR_ZERO_ALLOCATED_MEMORY) { KX_ALLOCATOR_MEMSET_B(reinterpret_cast<u64>(memory) + current_memory_size, 0, additional_size); }
+
+                    return memory;
+                }
+                else if (memory_found != -1)
+                {
+                    break;
+                }
+            } while (block = block->next);
+
+            if (!current_memory_size)
+            {
+                return { };
+            }
+
+            auto allocated_memory = this->allocate(new_size);
+            KX_ALLOCATOR_MEMCPY(allocated_memory, memory, current_memory_size);
+            this->free(memory);
+
+            return allocated_memory;
+        }
         inline void* try_free(void* memory) const
         {
             void* freed = { };
@@ -277,7 +356,7 @@ namespace kx
         inline int free_unused_blocks(bool exclude_first = true)
         {
             bool first_erased = { };
-            int freed_count   = { };
+            int freed_count = { };
 
             PBLOCK block_prev = { };
             PBLOCK block_next = { };
@@ -348,12 +427,12 @@ namespace kx
     public:
         inline void* allocate(u64 size)
         {
-    #if KX_ALLOCATOR_USE_AUTOMATIC_GC
+#if KX_ALLOCATOR_USE_AUTOMATIC_GC
             if (this->is_needed_gc && this->is_needed_gc(this))
             {
                 this->gc();
             }
-    #endif
+#endif
 
             if (auto allocated = this->try_allocate(size))
             {
@@ -366,6 +445,10 @@ namespace kx
                 return { };
             }
             return this->try_allocate(size);
+        }
+        inline void* reallocate(void* memory, u64 size)
+        {
+            return this->try_reallocate(memory, size);
         }
         inline void* free(void* memory)
         {
@@ -404,7 +487,7 @@ namespace kx
             return information;
         }
     public:
-        template <class T, class... args> T* allocate_instance(args&&... arguments)
+        template <class T, class... args> inline T* allocate_instance(args&&... arguments)
         {
             bool needed_erase = !(this->flags & KX_ALLOCATOR_ZERO_ALLOCATED_MEMORY);
             auto instance = reinterpret_cast<T*>(this->allocate(sizeof(T)));
@@ -412,7 +495,7 @@ namespace kx
             if (needed_erase) { KX_ALLOCATOR_MEMSET_B(instance, 0, sizeof(T)); }
             return ::new(instance) T(forward<args>(arguments)...);
         }
-        template <class T> void free_instance(T* instance)
+        template <class T> inline void free_instance(T* instance)
         {
             instance->~T();
             this->free(reinterpret_cast<void*>(instance));
