@@ -24,9 +24,9 @@
 
 /*------------------------------------------------------------------------------------------------*/
 
-#define KX_ALLOCATOR_MEMCPY(dst, src, count)    __movsb((unsigned char*)(dst), (const unsigned char*)(src), (unsigned __int64)(count));
-#define KX_ALLOCATOR_MEMSET_B(dst, data, count) __stosb((unsigned char*)(dst), (unsigned char)(data), (unsigned __int64)(count));
-#define KX_ALLOCATOR_MEMSET_Q(dst, data, count) __stosq((unsigned __int64*)(dst), (unsigned __int64)(data), (unsigned __int64)(count));
+#define KX_ALLOCATOR_MEMCPY(dst, src, count)    __movsb((unsigned char*)(dst),    (const unsigned char*)(src), (unsigned __int64)(count));
+#define KX_ALLOCATOR_MEMSET_B(dst, data, count) __stosb((unsigned char*)(dst),    (unsigned char)(data),       (unsigned __int64)(count));
+#define KX_ALLOCATOR_MEMSET_Q(dst, data, count) __stosq((unsigned __int64*)(dst), (unsigned __int64)(data),    (unsigned __int64)(count));
 
 /*------------------------------------------------------------------------------------------------*/
 
@@ -506,8 +506,12 @@ namespace kx
 
 /*------------------------------------------------------------------------------------------------*/
 
+#undef KX_ALLOCATOR_MEMCPY
 #undef KX_ALLOCATOR_MEMSET_Q
 #undef KX_ALLOCATOR_MEMSET_B
+
+#undef KX_ALLOCATOR_DEFAULT_BLOCK_SIZE
+#undef KX_ALLOCATOR_DEFAULT_BLOCK_COUNT
 
 /*------------------------------------------------------------------------------------------------*/
 
