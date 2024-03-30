@@ -333,6 +333,10 @@ namespace kx
                         }
                         block->blocks_state[i] = { };
                     }
+                    else if (freed)
+                    {
+                        break;
+                    }
                 }
 
                 if (freed)
